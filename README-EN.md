@@ -24,10 +24,10 @@ TinyOS is a lightweight kernel that features non-preemptive scheduling, weak pri
 - The type definition of an event is as follows:
 ```
 typedef struct os_event_t {
-    int Id;                   // 事件对应任务的ID。
-    uint32_t Mask;            // 事件掩码。
-    uint32_t Timeout;         // 事件超时。
-    struct os_event_t * Next; // 事件链表指针。
+    int Id;                   // The event corresponding task ID
+    uint32_t Mask;            // Event Mask
+    uint32_t Timeout;         // Event Timeout
+    struct os_event_t * Next; // Event Linked List Pointer
 } OS_EVENT;
 ```
 
@@ -42,11 +42,11 @@ typedef struct os_event_t {
 - The type definition of the task control block is as follows:
 ```
 typedef struct {
-    int Id;        // 任务ID。
-    void * Init;   // 初始化函数。
-    void * Task;   // 任务函数。
-    uint32_t Flag; // 就绪事件标志。
-    int Counter;   // 此任务已经分配的事件数目。
+    int Id;        // Task ID
+    void * Init;   // Initialization Function
+    void * Task;   // Task Function
+    uint32_t Flag; // Ready Event Flag
+    int Counter;   // The number of events allocated to this task
 } OS_TCB;
 ```
 
