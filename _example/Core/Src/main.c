@@ -49,12 +49,12 @@
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 /* USER CODE BEGIN PFP */
-static void TaskButtonInit(OS_TCB * tcb);
-static void TaskButton(OS_TCB * tcb);
-static void TaskAInit(OS_TCB * tcb);
-static void TaskA(OS_TCB * tcb);
-static void TaskBInit(OS_TCB * tcb);
-static void TaskB(OS_TCB * tcb);
+static void TaskButtonInit(OS_TCB_T * tcb);
+static void TaskButton(OS_TCB_T * tcb);
+static void TaskAInit(OS_TCB_T * tcb);
+static void TaskA(OS_TCB_T * tcb);
+static void TaskBInit(OS_TCB_T * tcb);
+static void TaskB(OS_TCB_T * tcb);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -68,7 +68,7 @@ static __OS_EVENT_ALLOC(EventStartA);
 static __OS_EVENT_ALLOC(EventStopA);
 static __OS_EVENT_ALLOC(EventStartB);
 static __OS_EVENT_ALLOC(EventStopB);
-static OS_TCB tcb[] = {
+static OS_TCB_T tcb[] = {
     __OS_TASK_INSERT(TaskButtonInit, TaskButton),
     __OS_TASK_INSERT(TaskAInit, TaskA),
     __OS_TASK_INSERT(TaskBInit, TaskB),
@@ -104,7 +104,7 @@ int main(void)
     MX_GPIO_Init();
     /* USER CODE BEGIN 2 */
     LastTick = HAL_GetTick();
-    OSStart(tcb, sizeof(tcb) / sizeof(OS_TCB));
+    OSStart(tcb, sizeof(tcb) / sizeof(OS_TCB_T));
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -205,8 +205,8 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-static void TaskButtonInit(OS_TCB * tcb) { OSEventBind(tcb, &EventButton); }
-static void TaskButton(OS_TCB * tcb)
+static void TaskButtonInit(OS_TCB_T * tcb) { OSEventBind(tcb, &EventButton); }
+static void TaskButton(OS_TCB_T * tcb)
 {
     static bool aOrB = false;
 
@@ -223,13 +223,13 @@ static void TaskButton(OS_TCB * tcb)
     }
 }
 
-static void TaskAInit(OS_TCB * tcb)
+static void TaskAInit(OS_TCB_T * tcb)
 {
     OSEventBind(tcb, &Event100ms);
     OSEventBind(tcb, &EventStartA);
     OSEventBind(tcb, &EventStopA);
 }
-static void TaskA(OS_TCB * tcb)
+static void TaskA(OS_TCB_T * tcb)
 {
     static bool start = false;
 
@@ -250,14 +250,14 @@ static void TaskA(OS_TCB * tcb)
     }
 }
 
-static void TaskBInit(OS_TCB * tcb)
+static void TaskBInit(OS_TCB_T * tcb)
 {
     OSEventBind(tcb, &Event500ms);
     OSEventBind(tcb, &EventStartB);
     OSEventBind(tcb, &EventStopB);
 }
 
-static void TaskB(OS_TCB * tcb)
+static void TaskB(OS_TCB_T * tcb)
 {
     static bool start = false;
 
@@ -307,7 +307,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     }
 }
 
-OS_TICK OSTimestampGet(void) { return HAL_GetTick(); }
+OS_TICK_T OSTimestampGet(void) { return HAL_GetTick(); }
 /* USER CODE END 4 */
 
 /**

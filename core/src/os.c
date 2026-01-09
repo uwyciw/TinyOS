@@ -19,16 +19,16 @@
 /* Includes ------------------------------------------------------------------*/
 #include "os.h"
 
-static OS_TCB * OSTcbBase = NULL;
-static OS_EVENT OSTimeoutList = {0};
+static OS_TCB_T * OSTcbBase = NULL;
+static OS_EVENT_T OSTimeoutList = {0};
 static uint32_t OSReadyEventGroup;
 
-void OSStart(OS_TCB * tcb, int number)
+void OSStart(OS_TCB_T * tcb, int number)
 {
     int index = 0;
-    OS_TICK tick;
-    OSTaskFunction initFunction;
-    OSTaskFunction taskFunction;
+    OS_TICK_T tick;
+    OSTaskFunction_T initFunction;
+    OSTaskFunction_T taskFunction;
 
     OSTcbBase = tcb;
     OSTimeoutList.Next = NULL;
@@ -39,7 +39,7 @@ void OSStart(OS_TCB * tcb, int number)
         tcb[i].Counter = 0;
         tcb[i].MaxTick = 0;
         if (tcb[i].Init != NULL) {
-            initFunction = (OSTaskFunction)tcb[i].Init;
+            initFunction = (OSTaskFunction_T)tcb[i].Init;
             initFunction(&tcb[i]);
         }
     }
@@ -53,7 +53,7 @@ void OSStart(OS_TCB * tcb, int number)
         tcb[index].Flag = 0;
         OSCriticalExit();
         if (OSReadyEventGroup != 0) {
-            taskFunction = (OSTaskFunction)tcb[index].Task;
+            taskFunction = (OSTaskFunction_T)tcb[index].Task;
             tick = OSTimestampGet();
             taskFunction(&tcb[index]);
             tick = OSTimestampGet() - tick;
@@ -73,7 +73,7 @@ void OSStart(OS_TCB * tcb, int number)
     }
 }
 
-bool OSEventBind(OS_TCB * tcb, OS_EVENT * event)
+bool OSEventBind(OS_TCB_T * tcb, OS_EVENT_T * event)
 {
     if (tcb->Counter >= OS_EVENT_MAX_NUM) {
         return false;
@@ -94,7 +94,7 @@ bool OSEventBind(OS_TCB * tcb, OS_EVENT * event)
     return true;
 }
 
-bool OSEventBindISR(OS_TCB * tcb, OS_EVENT * event)
+bool OSEventBindISR(OS_TCB_T * tcb, OS_EVENT_T * event)
 {
     if (tcb->Counter >= OS_EVENT_MAX_NUM) {
         return false;
@@ -113,7 +113,7 @@ bool OSEventBindISR(OS_TCB * tcb, OS_EVENT * event)
     return true;
 }
 
-void OSEventPost(OS_EVENT * event)
+void OSEventPost(OS_EVENT_T * event)
 {
     if (event->Id < 0) {
         return;
@@ -123,7 +123,7 @@ void OSEventPost(OS_EVENT * event)
     OSCriticalExit();
 }
 
-void OSEventPostISR(OS_EVENT * event)
+void OSEventPostISR(OS_EVENT_T * event)
 {
     if (event->Id < 0) {
         return;
@@ -131,11 +131,11 @@ void OSEventPostISR(OS_EVENT * event)
     OSTcbBase[event->Id].Flag = OSTcbBase[event->Id].Flag | event->Mask;
 }
 
-bool OSEventAssert(OS_EVENT * event) { return ((OSReadyEventGroup & event->Mask) == event->Mask); }
+bool OSEventAssert(OS_EVENT_T * event) { return ((OSReadyEventGroup & event->Mask) == event->Mask); }
 
-OS_TICK OSTickGetMini(void)
+OS_TICK_T OSTickGetMini(void)
 {
-    OS_EVENT * pEvent = &OSTimeoutList;
+    OS_EVENT_T * pEvent = &OSTimeoutList;
 
     if (pEvent->Next != NULL) {
         return pEvent->Next->Timeout;
@@ -144,10 +144,10 @@ OS_TICK OSTickGetMini(void)
     }
 }
 
-void OSTickHandle(OS_TICK tick)
+void OSTickHandle(OS_TICK_T tick)
 {
-    OS_EVENT * pTemp;
-    OS_EVENT * pEvent = &OSTimeoutList;
+    OS_EVENT_T * pTemp;
+    OS_EVENT_T * pEvent = &OSTimeoutList;
 
     if (pEvent->Next == NULL || tick == 0) {
         return;
@@ -173,10 +173,10 @@ void OSTickHandle(OS_TICK tick)
     OSCriticalExit();
 }
 
-void OSTickHandleISR(OS_TICK tick)
+void OSTickHandleISR(OS_TICK_T tick)
 {
-    OS_EVENT * pTemp;
-    OS_EVENT * pEvent = &OSTimeoutList;
+    OS_EVENT_T * pTemp;
+    OS_EVENT_T * pEvent = &OSTimeoutList;
 
     if (pEvent->Next == NULL || tick == 0) {
         return;
@@ -198,10 +198,10 @@ void OSTickHandleISR(OS_TICK tick)
     }
 }
 
-void OSTimeoutStart(OS_EVENT * event, OS_TICK tick)
+void OSTimeoutStart(OS_EVENT_T * event, OS_TICK_T tick)
 {
-    OS_TICK base = 0;
-    OS_EVENT * pEvent = &OSTimeoutList;
+    OS_TICK_T base = 0;
+    OS_EVENT_T * pEvent = &OSTimeoutList;
 
     OSCriticalEnter();
 
@@ -244,10 +244,10 @@ void OSTimeoutStart(OS_EVENT * event, OS_TICK tick)
     OSCriticalExit();
 }
 
-void OSTimeoutStartISR(OS_EVENT * event, OS_TICK tick)
+void OSTimeoutStartISR(OS_EVENT_T * event, OS_TICK_T tick)
 {
-    OS_TICK base = 0;
-    OS_EVENT * pEvent = &OSTimeoutList;
+    OS_TICK_T base = 0;
+    OS_EVENT_T * pEvent = &OSTimeoutList;
 
     // 定时器已经在运行，则先将其从运行链表中取出。
     if (event->Timeout > 0) {
@@ -286,9 +286,9 @@ void OSTimeoutStartISR(OS_EVENT * event, OS_TICK tick)
     }
 }
 
-void OSTimeoutStop(OS_EVENT * event)
+void OSTimeoutStop(OS_EVENT_T * event)
 {
-    OS_EVENT * pEvent = &OSTimeoutList;
+    OS_EVENT_T * pEvent = &OSTimeoutList;
 
     if (event->Timeout == 0) {
         return;
@@ -310,9 +310,9 @@ void OSTimeoutStop(OS_EVENT * event)
     OSCriticalExit();
 }
 
-void OSTimeoutStopISR(OS_EVENT * event)
+void OSTimeoutStopISR(OS_EVENT_T * event)
 {
-    OS_EVENT * pEvent = &OSTimeoutList;
+    OS_EVENT_T * pEvent = &OSTimeoutList;
 
     if (event->Timeout == 0) {
         return;
@@ -338,4 +338,4 @@ __WEAK void OSCriticalExit(void) {}
 
 __WEAK void OSIdelTask(void) {}
 
-__WEAK OS_TICK OSTimestampGet(void) { return 0; }
+__WEAK OS_TICK_T OSTimestampGet(void) { return 0; }

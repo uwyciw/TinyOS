@@ -28,7 +28,7 @@ typedef struct os_event_t {
     uint32_t Mask;            // Event Mask
     uint32_t Timeout;         // Event Timeout
     struct os_event_t * Next; // Event Linked List Pointer
-} OS_EVENT;
+} OS_EVENT_T;
 ```
 
 ## Task
@@ -38,7 +38,7 @@ typedef struct os_event_t {
   - The main function is called each time an active task is scheduled for execution by the kernel. Since this is merely a normal function call, the lifecycle of local variables within the main function differs from that of local variables in general RTOS task functions, which requires special attention.
 - Within a task's main function, the `Assert` function must be called to determine which events activated the task and to perform corresponding processing.
 - The kernel provides a dedicated macro `__OS_TASK_INSERT` for declaring tasks.
-- Before starting the kernel, it is necessary to first declare a task array and pass it to the kernel during kernel startup. The type of the task array is the task control block OS_TCB.
+- Before starting the kernel, it is necessary to first declare a task array and pass it to the kernel during kernel startup. The type of the task array is the task control block OS_TCB_T.
 - The type definition of the task control block is as follows:
 ```
 typedef struct {
@@ -47,7 +47,7 @@ typedef struct {
     void * Task;   // Task Function
     uint32_t Flag; // Ready Event Flag
     int Counter;   // The number of events allocated to this task
-} OS_TCB;
+} OS_TCB_T;
 ```
 
 ## Schedule
