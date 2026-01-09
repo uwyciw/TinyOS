@@ -1,6 +1,6 @@
 # TinyOS
 
-中文说明[在此](README-CN.md)。
+中文说明[在此](README.md)。
 
 TinyOS is a lightweight kernel that features non-preemptive scheduling, weak priority levels, and a single stack space shared by all tasks. Its design purpose is to provide an OS kernel for scenarios where requirements for real-time performance and concurrency are not stringent, but there is a need to split the overall business logic into multiple relatively independent tasks, along with basic event interaction demands between tasks, and between tasks and external inputs.
 
