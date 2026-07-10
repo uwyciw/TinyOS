@@ -38,22 +38,22 @@ typedef uint32_t OS_TICK_T;
  * @brief 任务控制块。
  */
 typedef struct {
-    int Id;          // 任务ID。
-    void * Init;     // 初始化函数。
-    void * Task;     // 任务函数。
-    uint32_t Flag;   // 就绪事件标志。
-    int Counter;     // 此任务已经分配的事件数目。
-    OS_TICK_T MaxTick; // 任务花费的最大的tick数。
+    int Id;             // 任务ID。
+    void * Init;        // 初始化函数。
+    void * Task;        // 任务函数。
+    uint32_t Flag;      // 就绪事件标志。
+    int Counter;        // 此任务已经分配的事件数目。
+    OS_TICK_T MaxTick;  // 任务花费的最大的tick数。
 } OS_TCB_T;
 
 /**
  * @brief 事件。
  */
 typedef struct os_event_t {
-    int Id;                   // 事件对应任务的ID。
-    uint32_t Mask;            // 事件掩码。
+    int Id;                     // 事件对应任务的ID。
+    uint32_t Mask;              // 事件掩码。
     OS_TICK_T Timeout;          // 事件超时。
-    struct os_event_t * Next; // 事件链表指针。
+    struct os_event_t * Next;   // 事件链表指针。
 } OS_EVENT_T;
 
 /**
