@@ -48,11 +48,12 @@ void OSStart(OS_TCB_T * tcb, int number)
     while (1) {
         OSCirculateBeginHook();
 
-        OSCriticalEnter();
-        OSReadyEventGroup = tcb[index].Flag;
-        tcb[index].Flag = 0;
-        OSCriticalExit();
-        if (OSReadyEventGroup != 0) {
+        if (tcb[index].Flag != 0) {
+            OSCriticalEnter();
+            OSReadyEventGroup = tcb[index].Flag;
+            tcb[index].Flag = 0;
+            OSCriticalExit();
+            
             taskFunction = (OSTaskFunction_T)tcb[index].Task;
             tick = OSTimestampGet();
             taskFunction(&tcb[index]);
