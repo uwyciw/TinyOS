@@ -20,7 +20,7 @@
 #ifndef _OS_H_
 #define _OS_H_
 
-/* Includes ------------------------------------------------------------------*/
+  /* Includes ------------------------------------------------------------------*/
 #include "os_internal.h"
 
 /**
@@ -32,31 +32,23 @@
 #define __OS_TASK_INSERT(__INIT__, __TASK__)                                                       \
     ((OS_TCB_T){.Init = (void *)(__INIT__), .Task = (void *)(__TASK__)})
 
-/**
- * @brief 声明一个事件。
- * @note
- * @param __NAME__：事件变量名。
- * @retval
- */
+ /**
+  * @brief 声明一个事件。
+  * @note
+  * @param __NAME__：事件变量名。
+  * @retval
+  */
 #define __OS_EVENT_ALLOC(__NAME__) OS_EVENT_T __NAME__ = {.Id = -1, .Timeout = 0}
 
-/**
- * @brief 任务函数。
- * @note
- * @param tcb：对应的任务控制块；flag。
- * @retval
- */
+  /**
+   * @brief 任务函数。
+   * @note
+   * @param tcb：对应的任务控制块。
+   * @retval
+   */
 typedef void (*OSTaskFunction_T)(OS_TCB_T * tcb);
 
-/**
- * @brief 弱类型函数。临界区保护函数。
- * @note 当需要临界区保护时，用户需根据需求重定义。
- * @param
- * @retval
- */
-void OSCriticalEnter(void);
-void OSCriticalExit(void);
-
+/*-------------------------------内核API-----------------------------------*/
 /**
  * @brief 启动系统。
  * @note
@@ -64,23 +56,6 @@ void OSCriticalExit(void);
  * @retval
  */
 void OSStart(OS_TCB_T * tcb, int number);
-
-/**
- * @brief 弱类型函数。系统循环的钩子函数。
- * @note 在每次系统循环开始和结束时，会调用它们。
- * @param
- * @retval
- */
-void OSCirculateBeginHook(void);
-void OSCirculateEndHook(void);
-
-/**
- * @brief 弱类型函数。在一次系统循环中，如果没有任务被激活则会调用该函数。
- * @note
- * @param
- * @retval
- */
-void OSIdelTask(void);
 
 /**
  * @brief 将一个事件与目标任务绑定。
@@ -136,19 +111,54 @@ void OSTickHandleISR(OS_TICK_T tick);
 bool OSEventAssert(OS_EVENT_T * event);
 
 /**
- * @brief 查询定时器链表里，第一个定时器的剩余滴答数。
+ * @brief 查询超时链表里，确定还需要多少个tick就会有超时发生。
  * @note
  * @param
- * @retval 剩余滴答数，若链表为空则返回0。
+ * @retval 还需要的tick数，若链表为空则返回0。
  */
-OS_TICK_T OSTickGetMini(void);
+OS_TICK_T OSGetNeededTick(void);
 
 /**
- * @brief 弱类型函数。获得时间戳，用于统计任务最大tick开销。
+ * @brief 查询任务在运行过程中，消耗tick的峰值。
+ * @note
+ * @param tcb：要查询的任务。
+ * @retval 消耗tick的峰值。
+ */
+OS_TICK_T OSGetMaxTick(OS_TCB_T * tcb);
+
+/*-------------------------------内核运行中会调用到的扩展接口-----------------------------------*/
+/**
+ * @brief 弱类型函数。临界区保护函数。
+ * @note 当需要临界区保护时，用户需根据需求重定义。
+ * @param
+ * @retval
+ */
+void OSCriticalEnter(void);
+void OSCriticalExit(void);
+
+/**
+ * @brief 弱类型函数。系统循环的钩子函数。
+ * @note 在每次系统循环开始和结束时，会调用它们。
+ * @param
+ * @retval
+ */
+void OSCirculateBeginHook(void);
+void OSCirculateEndHook(void);
+
+/**
+ * @brief 弱类型函数。在一次系统循环中，如果没有任务被激活则会调用该函数。
  * @note
  * @param
  * @retval
  */
-OS_TICK_T OSTimestampGet(void);
+void OSIdelTask(void);
+
+/**
+ * @brief 弱类型函数。内核使用该函数获得时间戳，并用于统计任务最大tick开销。
+ * @note 如果用户需要内核统计各任务在运行过程中，消耗tick的峰值，则需要提供该函数。
+ * @param
+ * @retval
+ */
+OS_TICK_T OSGetTimestamp(void);
 
 #endif // _OS_H_

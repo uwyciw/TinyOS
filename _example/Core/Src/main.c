@@ -307,7 +307,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     }
 }
 
-OS_TICK_T OSTimestampGet(void) { return HAL_GetTick(); }
+OS_TICK_T OSGetTimestamp(void) { return HAL_GetTick(); }
 /* USER CODE END 4 */
 
 /**

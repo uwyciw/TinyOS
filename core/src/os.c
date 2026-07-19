@@ -16,11 +16,11 @@
   ******************************************************************************
   */
 
-/* Includes ------------------------------------------------------------------*/
+  /* Includes ------------------------------------------------------------------*/
 #include "os.h"
 
 static OS_TCB_T * OSTcbBase = NULL;
-static OS_EVENT_T OSTimeoutList = {0};
+static OS_EVENT_T OSTimeoutList = { 0 };
 static uint32_t OSReadyEventGroup;
 
 void OSStart(OS_TCB_T * tcb, int number)
@@ -53,11 +53,11 @@ void OSStart(OS_TCB_T * tcb, int number)
             OSReadyEventGroup = tcb[index].Flag;
             tcb[index].Flag = 0;
             OSCriticalExit();
-            
+
             taskFunction = (OSTaskFunction_T)tcb[index].Task;
-            tick = OSTimestampGet();
+            tick = OSGetTimestamp();
             taskFunction(&tcb[index]);
-            tick = OSTimestampGet() - tick;
+            tick = OSGetTimestamp() - tick;
             tcb[index].MaxTick = tcb[index].MaxTick < tick ? tick : tcb[index].MaxTick;
             index = 0;
             continue;
@@ -134,7 +134,7 @@ void OSEventPostISR(OS_EVENT_T * event)
 
 bool OSEventAssert(OS_EVENT_T * event) { return ((OSReadyEventGroup & event->Mask) == event->Mask); }
 
-OS_TICK_T OSTickGetMini(void)
+OS_TICK_T OSGetNeededTick(void)
 {
     OS_EVENT_T * pEvent = &OSTimeoutList;
 
@@ -143,6 +143,11 @@ OS_TICK_T OSTickGetMini(void)
     } else {
         return 0;
     }
+}
+
+OS_TICK_T OSGetMaxTick(OS_TCB_T * tcb)
+{
+    return tcb->MaxTick;
 }
 
 void OSTickHandle(OS_TICK_T tick)
@@ -339,4 +344,4 @@ __WEAK void OSCriticalExit(void) {}
 
 __WEAK void OSIdelTask(void) {}
 
-__WEAK OS_TICK_T OSTimestampGet(void) { return 0; }
+__WEAK OS_TICK_T OSGetTimestamp(void) { return 0; }
