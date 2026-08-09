@@ -12,20 +12,20 @@ TinyOS是一款非抢占式、弱优先级、所有任务共用一个栈空间�
 - 计时单元仅支持滴答(tick)数，不支持时间单位，且不要求每次时钟滴答都调用定时函数，这样的做法对一些低功耗场景很友好；
 
 ## 事件
-- 事件在被使用前，必须与一个任务进行绑定的，且绑定后无法解绑，每个任务至多可以绑定32个事件；
+- 事件在被使用前，必须与一个任务进行绑定的，且绑定后无法解绑，每个任务可以绑定的事件数目由OS_EVENT_MAX_NUM指定，可以是32或64；
 - 当事件被触发后，与其绑定的任务就会处于激活状态，内核就会在恰当时机对其调度；
 - 任务一旦被执行，那么其绑定的所有事件都会回归至非触发态；
 - 尽管内核只提供一种事件类型，但其可以被当作信号类事件，也可以被当作计时类事件；
-  - 当事件作为非计数型信号类事件使用时，可以通过`Post`函数，向事件发送信号触发事件；
-  - 当事件作为计时类事件使用时，可以通过`Timeout`函数，将事件加入定时器队列，等待超时触发事件；
+  - 当事件作为非计数型信号类事件使用时，可以通过`OSEventPost`函数，激活事件；
+  - 当事件作为计时类事件使用时，可以通过`OSTimerStart`函数，将事件加入定时器队列，等待超时触发事件；
 - 内核提供声明事件专用的宏`__OS_EVENT_ALLOC`；
 - 事件的类型定义如下：
 ```
 typedef struct os_event_t {
-    int Id;                   // 事件对应任务的ID。
-    uint32_t Mask;            // 事件掩码。
-    uint32_t Timeout;         // 事件超时。
-    struct os_event_t * Next; // 事件链表指针。
+    int Id;                         // 事件对应任务的ID。
+    OS_TICK_T Timeout;              // 事件超时。
+    struct os_event_t * Next;       // 事件链表指针。
+    uint32_t Mask;                  // 事件掩码。
 } OS_EVENT_T;
 ```
 
@@ -38,12 +38,13 @@ typedef struct os_event_t {
 - 在启动内核前，需要先声明任务数组，并在启动内核时，将任务数组传入内核，任务数组的类型为任务控制块`OS_TCB_T`；
 - 任务控制块的类型定义如下：
 ```
-typedef struct {
-    int Id;        // 任务ID。
-    void * Init;   // 初始化函数。
-    void * Task;   // 任务函数。
-    uint32_t Flag; // 就绪事件标志。
-    int Counter;   // 此任务已经分配的事件数目。
+typedef struct os_tcb_t {
+    int Id;                                 // 任务ID。
+    int Counter;                            // 此任务已经分配的事件数目。
+    OS_TICK_T MaxTick;                      // 任务花费的最大的tick数。
+    void (*Init)(struct os_tcb_t * tcb);    // 初始化函数。
+    void (*Task)(struct os_tcb_t * tcb);    // 任务函数。
+    atomic_uint_least32_t Flag;             // 就绪事件标志。
 } OS_TCB_T;
 ```
 

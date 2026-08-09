@@ -14,20 +14,20 @@ TinyOS is a lightweight kernel that features non-preemptive scheduling, weak pri
 
 ## Event
 
-- An event must be bound to a task before it can be used, and once bound, the association cannot be unbound. A single task can be bound to a maximum of 32 events.
+- Before an EVENT is used, it must be bound to a task and cannot be unbound after binding. The number of events that each task can bind is specified by OS EVENT MAX NUM, which can be 32 or 64.
 - When an event is triggered, the task bound to it enters an active state, and the kernel will schedule the task at an appropriate time.
 - Once a task is executed, all events bound to it will revert to the non-triggered state.
 - Although the kernel provides only one event type, it can be used either as a signal-like event or a timer-like event.
-  - When used as a non-counting signal-like event, the event can be triggered by sending a signal via the `Post` function.
-  - When used as a timer-like event, the event can be added to the timer queue via the `Timeout` function, waiting to be triggered upon timeout.
+  - When an event is used as a non-counting signal type event, it can be activated through the 'OSEventPost' function.
+  - When used as a timer-like event, the event can be added to the timer queue via the `OSTimerStart` function, waiting to be triggered upon timeout.
 - The kernel provides a dedicated macro `__OS_EVENT_ALLOC` for declaring events.
 - The type definition of an event is as follows:
 ```
 typedef struct os_event_t {
-    int Id;                   // The event corresponding task ID
-    uint32_t Mask;            // Event Mask
-    uint32_t Timeout;         // Event Timeout
-    struct os_event_t * Next; // Event Linked List Pointer
+    int Id;                         // 事件对应任务的ID。
+    OS_TICK_T Timeout;              // 事件超时。
+    struct os_event_t * Next;       // 事件链表指针。
+    uint32_t Mask;                  // 事件掩码。
 } OS_EVENT_T;
 ```
 
@@ -41,12 +41,13 @@ typedef struct os_event_t {
 - Before starting the kernel, it is necessary to first declare a task array and pass it to the kernel during kernel startup. The type of the task array is the task control block OS_TCB_T.
 - The type definition of the task control block is as follows:
 ```
-typedef struct {
-    int Id;        // Task ID
-    void * Init;   // Initialization Function
-    void * Task;   // Task Function
-    uint32_t Flag; // Ready Event Flag
-    int Counter;   // The number of events allocated to this task
+typedef struct os_tcb_t {
+    int Id;                                 // 任务ID。
+    int Counter;                            // 此任务已经分配的事件数目。
+    OS_TICK_T MaxTick;                      // 任务花费的最大的tick数。
+    void (*Init)(struct os_tcb_t * tcb);    // 初始化函数。
+    void (*Task)(struct os_tcb_t * tcb);    // 任务函数。
+    atomic_uint_least32_t Flag;             // 就绪事件标志。
 } OS_TCB_T;
 ```
 
