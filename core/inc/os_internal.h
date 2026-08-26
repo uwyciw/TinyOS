@@ -28,12 +28,20 @@
  * @brief 每个任务支持的最大事件数目。
  */
 #define OS_EVENT_MAX_NUM 32
-#if (OS_EVENT_MAX_NUM == 32)
-#define OS_EVENT_MAX_NUM_32
+#if (OS_EVENT_MAX_NUM == 8)
+typedef _Atomic(uint8_t) OS_EVENT_FLAG_T;
+typedef uint8_t OS_EVENT_MASK_T;
+#elif (OS_EVENT_MAX_NUM == 16)
+typedef _Atomic(uint16_t) OS_EVENT_FLAG_T;
+typedef uint16_t OS_EVENT_MASK_T;
+#elif (OS_EVENT_MAX_NUM == 32)
+typedef _Atomic(uint32_t) OS_EVENT_FLAG_T;
+typedef uint32_t OS_EVENT_MASK_T;
 #elif (OS_EVENT_MAX_NUM == 64)
-#define OS_EVENT_MAX_NUM_64
+typedef _Atomic(uint64_t) OS_EVENT_FLAG_T;
+typedef uint64_t OS_EVENT_MASK_T;
 #else
-#error "OS_EVENT_MAX_NUM must be 32 or 64."
+#error "OS_EVENT_MAX_NUM must be 8, 16, 32, or 64."
 #endif
 
  /**
@@ -50,11 +58,7 @@ typedef struct os_tcb_t {
     OS_TICK_T MaxTick;                      // 任务花费的最大的tick数。
     void (*Init)(struct os_tcb_t * tcb);    // 初始化函数。
     void (*Task)(struct os_tcb_t * tcb);    // 任务函数。
-    #ifdef OS_EVENT_MAX_NUM_32
-        atomic_uint_least32_t Flag;         // 就绪事件标志。
-    #else
-        atomic_uint_least64_t Flag;         // 就绪事件标志。
-    #endif
+    OS_EVENT_FLAG_T Flag;                   // 就绪事件标志。
 } OS_TCB_T;
 
 /**
@@ -64,11 +68,7 @@ typedef struct os_event_t {
     int Id;                         // 事件对应任务的ID。
     OS_TICK_T Timeout;              // 事件超时。
     struct os_event_t * Next;       // 事件链表指针。
-    #ifdef OS_EVENT_MAX_NUM_32
-        uint32_t Mask;              // 事件掩码。
-    #else
-        uint64_t Mask;              // 事件掩码。
-    #endif
+    OS_EVENT_MASK_T Mask;           // 事件掩码。
 } OS_EVENT_T;
 
 #endif // _OS_INTERNAL_H_
