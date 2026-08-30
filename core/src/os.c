@@ -21,7 +21,7 @@
 
 static OS_TCB_T * gOSTcbBase = NULL;
 static OS_EVENT_T gOSTimeoutList = { 0 };
-static uint32_t gOSReadyEventGroup;
+static OS_EVENT_MASK_T gOSReadyEventGroup;
 
 static void OSTickHandle(OS_TICK_T tick);
 
@@ -131,7 +131,6 @@ void OSTimerStart(OS_EVENT_T * event, OS_TICK_T tick)
             pEvent = pEvent->Next;
         }
         pEvent->Next = pEvent->Next->Next;
-        pEvent = pEvent->Next;
         if (pEvent->Next != NULL) {
             pEvent->Next->Timeout = pEvent->Next->Timeout + event->Timeout;
         }
@@ -176,7 +175,6 @@ void OSTimerStop(OS_EVENT_T * event)
         pEvent = pEvent->Next;
     }
     pEvent->Next = pEvent->Next->Next;
-    pEvent = pEvent->Next;
     if (pEvent->Next != NULL) {
         pEvent->Next->Timeout = pEvent->Next->Timeout + event->Timeout;
     }
