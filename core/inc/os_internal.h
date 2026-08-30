@@ -14,12 +14,12 @@
   *
   *
   ******************************************************************************
-  */
+***/
 
 #ifndef _OS_INTERNAL_H_
 #define _OS_INTERNAL_H_
 
-  /* Includes ------------------------------------------------------------------*/
+/* Includes ------------------------------------------------------------------*/
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdatomic.h>
@@ -44,9 +44,9 @@ typedef uint64_t OS_EVENT_MASK_T;
 #error "OS_EVENT_MAX_NUM must be 8, 16, 32, or 64."
 #endif
 
- /**
-  * @brief tick类型。
-  */
+/**
+ * @brief tick类型。
+ */
 typedef uint32_t OS_TICK_T;
 
 /**
@@ -66,9 +66,10 @@ typedef struct os_tcb_t {
  */
 typedef struct os_event_t {
     int Id;                         // 事件对应任务的ID。
+    OS_EVENT_MASK_T Mask;           // 事件掩码。
+    bool IsRun;                     // 事件超时是否正在运行。
     OS_TICK_T Timeout;              // 事件超时。
     struct os_event_t * Next;       // 事件链表指针。
-    OS_EVENT_MASK_T Mask;           // 事件掩码。
 } OS_EVENT_T;
 
 #endif // _OS_INTERNAL_H_

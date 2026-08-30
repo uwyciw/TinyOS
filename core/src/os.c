@@ -11,12 +11,12 @@
 
   ******************************************************************************
   * @attention
-  *
+  * 除OSEventPost外，其他函数仅建议在无并发环境下使用，否则会有数据竞争风险，需要增加保护机制。
   *
   ******************************************************************************
-  */
+***/
 
-  /* Includes ------------------------------------------------------------------*/
+/* Includes ------------------------------------------------------------------*/
 #include "os.h"
 
 static OS_TCB_T * gOSTcbBase = NULL;
@@ -30,7 +30,7 @@ void OSStart(OS_TCB_T * tcb, int number)
     int index = 0;
     OS_TICK_T currentTick, lastTick;
     OS_TICK_T maxTick;
-    
+
     if (tcb == NULL || number <= 0) {
         return;
     }
@@ -81,6 +81,8 @@ bool OSEventBind(OS_TCB_T * tcb, OS_EVENT_T * event)
 
     event->Id = tcb->Id;
     event->Mask = 1u << tcb->Counter;
+    event->IsRun = false;
+    event->Next = NULL;
     tcb->Counter = tcb->Counter + 1;
 
     return true;
@@ -122,9 +124,9 @@ void OSTimerStart(OS_EVENT_T * event, OS_TICK_T tick)
 {
     OS_TICK_T base = 0;
     OS_EVENT_T * pEvent = &gOSTimeoutList;
-    
+
     // 定时器已经在运行，则先将其从运行链表中取出。
-    if (event->Timeout > 0) {
+    if (event->IsRun == true) {
         while (pEvent->Next != NULL && pEvent->Next != event) {
             pEvent = pEvent->Next;
         }
@@ -134,7 +136,7 @@ void OSTimerStart(OS_EVENT_T * event, OS_TICK_T tick)
             pEvent->Next->Timeout = pEvent->Next->Timeout + event->Timeout;
         }
         event->Next = NULL;
-        event->Timeout = 0;
+        event->IsRun = false;
         pEvent = &gOSTimeoutList;
     }
 
@@ -158,16 +160,18 @@ void OSTimerStart(OS_EVENT_T * event, OS_TICK_T tick)
         event->Next = pEvent->Next;
         pEvent->Next = event;
     }
+
+    event->IsRun = true;
 }
 
 void OSTimerStop(OS_EVENT_T * event)
 {
     OS_EVENT_T * pEvent = &gOSTimeoutList;
-    
-    if (event->Timeout == 0) {
+
+    if (event->IsRun == false) {
         return;
     }
-    
+
     while (pEvent->Next != NULL && pEvent->Next != event) {
         pEvent = pEvent->Next;
     }
@@ -177,7 +181,7 @@ void OSTimerStop(OS_EVENT_T * event)
         pEvent->Next->Timeout = pEvent->Next->Timeout + event->Timeout;
     }
     event->Next = NULL;
-    event->Timeout = 0;
+    event->IsRun = false;
 }
 
 __WEAK void OSIdelTask(void) {}
