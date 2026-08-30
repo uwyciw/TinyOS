@@ -210,7 +210,7 @@ static void OSTickHandle(OS_TICK_T tick)
             pTemp = pEvent->Next;
             pEvent->Next = pEvent->Next->Next;
             pTemp->Next = NULL;
-            pTemp->Timeout = 0;
+            pTemp->IsRun = false;
         } else {
             pEvent->Next->Timeout = pEvent->Next->Timeout - tick;
             break;
