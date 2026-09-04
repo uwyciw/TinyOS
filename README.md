@@ -12,7 +12,7 @@ TinyOS是一款非抢占式、弱优先级、所有任务共用一个栈空间�
 - 计时单元仅支持滴答(tick)数，不支持时间单位，且不要求每次时钟滴答都调用定时函数，这样的做法对一些低功耗场景很友好；
 
 ## 事件
-- 事件在被使用前，必须与一个任务进行绑定的，且绑定后无法解绑，每个任务可以绑定的事件数目由OS_EVENT_MAX_NUM指定，可以是32或64；
+- 事件在被使用前，必须与一个任务进行绑定的，且绑定后无法解绑，每个任务可以绑定的事件数目由OS_EVENT_MAX_NUM指定，可以是8、16、32或64；
 - 当事件被触发后，与其绑定的任务就会处于激活状态，内核就会在恰当时机对其调度；
 - 任务一旦被执行，那么其绑定的所有事件都会回归至非触发态；
 - 尽管内核只提供一种事件类型，但其可以被当作信号类事件，也可以被当作计时类事件；
@@ -23,9 +23,10 @@ TinyOS是一款非抢占式、弱优先级、所有任务共用一个栈空间�
 ```
 typedef struct os_event_t {
     int Id;                         // 事件对应任务的ID。
+    OS_EVENT_MASK_T Mask;           // 事件掩码。
+    bool IsRun;                     // 事件超时是否正在运行。
     OS_TICK_T Timeout;              // 事件超时。
     struct os_event_t * Next;       // 事件链表指针。
-    uint32_t Mask;                  // 事件掩码。
 } OS_EVENT_T;
 ```
 
@@ -44,7 +45,7 @@ typedef struct os_tcb_t {
     OS_TICK_T MaxTick;                      // 任务花费的最大的tick数。
     void (*Init)(struct os_tcb_t * tcb);    // 初始化函数。
     void (*Task)(struct os_tcb_t * tcb);    // 任务函数。
-    atomic_uint_least32_t Flag;             // 就绪事件标志。
+    OS_EVENT_FLAG_T Flag;                   // 就绪事件标志。
 } OS_TCB_T;
 ```
 
@@ -66,5 +67,5 @@ typedef struct os_tcb_t {
 │   │    └── os_internal.h    # 内部头文件
 │   └── src
 │        └── os.c             # 内核代码
-└── _example                  # 一个例程，在ST的NUCLEO-L053R8运行，可以使用STM32CubeMX产生工程代码
+└── _example                  # 一个例程，在ST的NUCLEO-H563ZI运行，可以使用STM32CubeMX产生工程代码
 ```

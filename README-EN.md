@@ -14,7 +14,7 @@ TinyOS is a lightweight kernel that features non-preemptive scheduling, weak pri
 
 ## Event
 
-- Before an EVENT is used, it must be bound to a task and cannot be unbound after binding. The number of events that each task can bind is specified by OS EVENT MAX NUM, which can be 32 or 64.
+- Before an EVENT is used, it must be bound to a task and cannot be unbound after binding. The number of events that each task can bind is specified by OS_EVENT_MAX_NUM, which can be 8, 16, 32, or 64.
 - When an event is triggered, the task bound to it enters an active state, and the kernel will schedule the task at an appropriate time.
 - Once a task is executed, all events bound to it will revert to the non-triggered state.
 - Although the kernel provides only one event type, it can be used either as a signal-like event or a timer-like event.
@@ -24,10 +24,11 @@ TinyOS is a lightweight kernel that features non-preemptive scheduling, weak pri
 - The type definition of an event is as follows:
 ```
 typedef struct os_event_t {
-    int Id;                         // 事件对应任务的ID。
-    OS_TICK_T Timeout;              // 事件超时。
-    struct os_event_t * Next;       // 事件链表指针。
-    uint32_t Mask;                  // 事件掩码。
+    int Id;                         // ID of the task this event belongs to.
+    OS_EVENT_MASK_T Mask;           // Event mask.
+    bool IsRun;                     // Whether the event timer is running.
+    OS_TICK_T Timeout;              // Event timeout.
+    struct os_event_t * Next;       // Linked list pointer.
 } OS_EVENT_T;
 ```
 
@@ -42,12 +43,12 @@ typedef struct os_event_t {
 - The type definition of the task control block is as follows:
 ```
 typedef struct os_tcb_t {
-    int Id;                                 // 任务ID。
-    int Counter;                            // 此任务已经分配的事件数目。
-    OS_TICK_T MaxTick;                      // 任务花费的最大的tick数。
-    void (*Init)(struct os_tcb_t * tcb);    // 初始化函数。
-    void (*Task)(struct os_tcb_t * tcb);    // 任务函数。
-    atomic_uint_least32_t Flag;             // 就绪事件标志。
+    int Id;                                 // Task ID.
+    int Counter;                            // Number of events allocated to this task.
+    OS_TICK_T MaxTick;                      // Maximum tick count consumed by this task.
+    void (*Init)(struct os_tcb_t * tcb);    // Initialization function.
+    void (*Task)(struct os_tcb_t * tcb);    // Task function.
+    OS_EVENT_FLAG_T Flag;                   // Ready event flags.
 } OS_TCB_T;
 ```
 
@@ -72,5 +73,5 @@ typedef struct os_tcb_t {
 │   │    └── os_internal.h    # Internal Header File
 │   └── src
 │        └── os.c             # Kernel Code
-└── _example                  # An example program that runs on ST’s NUCLEO-L053R8, with project code generated using STM32CubeMX
+└── _example                  # An example program that runs on ST’s NUCLEO-H563ZI, with project code generated using STM32CubeMX
 ```
