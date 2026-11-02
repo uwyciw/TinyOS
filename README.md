@@ -67,7 +67,6 @@ typedef struct os_timer_t {
     OS_TICK_T Timeout;              // 相对于前一个定时器的剩余tick数。
     OS_TICK_T Interval;             // 定时时长，周期定时器超时后按该值重新装载。
     OS_TIMEOUT_TYPE_T Type;         // 定时器类型。
-    bool IsRun;                     // 定时器是否正在运行。
 } OS_TIMER_T;
 ```
 

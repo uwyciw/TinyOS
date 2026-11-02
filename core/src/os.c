@@ -124,16 +124,13 @@ void OSTimerInit(OS_TIMER_T * timer, OS_EVENT_T * event, OS_TIMEOUT_TYPE_T type)
         return;
     }
 
-    if (timer->IsRun == true) {
-        OSTimerRemove(timer);
-    }
+    OSTimerRemove(timer);
 
     timer->Next = NULL;
     timer->Event = event;
     timer->Timeout = 0;
     timer->Interval = 0;
     timer->Type = type;
-    timer->IsRun = false;
 }
 
 void OSTimerStart(OS_TIMER_T * timer, OS_TICK_T tick)
@@ -142,10 +139,8 @@ void OSTimerStart(OS_TIMER_T * timer, OS_TICK_T tick)
         return;
     }
 
-    // 定时器已经在运行，则先将其从运行链表中取出。
-    if (timer->IsRun == true) {
-        OSTimerRemove(timer);
-    }
+    // 定时器若已在运行，则先将其从运行链表中取出；不在链表中时无影响。
+    OSTimerRemove(timer);
 
     timer->Interval = tick;
     OSTimerInsert(timer, tick);
@@ -153,7 +148,7 @@ void OSTimerStart(OS_TIMER_T * timer, OS_TICK_T tick)
 
 void OSTimerStop(OS_TIMER_T * timer)
 {
-    if (timer == NULL || timer->IsRun == false) {
+    if (timer == NULL) {
         return;
     }
 
@@ -189,7 +184,6 @@ static void OSTickHandle(OS_TICK_T tick)
         pExpired = pTimer->Next;
         pTimer->Next = pExpired->Next;
         pExpired->Next = NULL;
-        pExpired->IsRun = false;
         OSEventPost(pExpired->Event);
 
         // 周期定时器重新装载，若剩余tick足够，会在本轮内再次超时。
@@ -229,13 +223,11 @@ static void OSTimerInsert(OS_TIMER_T * timer, OS_TICK_T tick)
         timer->Next = pTimer->Next;
         pTimer->Next = timer;
     }
-
-    timer->IsRun = true;
 }
 
 /**
- * @brief 将一个正在运行的定时器从运行链表中取出。
- * @note
+ * @brief 将定时器从运行链表中取出。
+ * @note 定时器不在链表中时，不会产生影响。
  * @param timer：要取出的定时器。
  * @retval
  */
@@ -248,7 +240,6 @@ static void OSTimerRemove(OS_TIMER_T * timer)
     }
 
     if (pTimer->Next == NULL) {
-        timer->IsRun = false;
         return;
     }
 
@@ -257,5 +248,4 @@ static void OSTimerRemove(OS_TIMER_T * timer)
         timer->Next->Timeout = timer->Next->Timeout + timer->Timeout;
     }
     timer->Next = NULL;
-    timer->IsRun = false;
 }

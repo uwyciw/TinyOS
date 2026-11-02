@@ -72,7 +72,6 @@ typedef struct os_timer_t {
     OS_TICK_T Timeout;              // Remaining ticks relative to the previous timer.
     OS_TICK_T Interval;             // Timeout length; a periodic timer reloads this value after expiry.
     OS_TIMEOUT_TYPE_T Type;         // Timer type.
-    bool IsRun;                     // Whether the timer is running.
 } OS_TIMER_T;
 ```
 
