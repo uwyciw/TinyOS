@@ -66,20 +66,28 @@ bool OSEventBind(OS_TCB_T * tcb, OS_EVENT_T * event);
 void OSEventPost(const OS_EVENT_T * event);
 
 /**
- * @brief 启动一个定时器。
- * @note 定时器均为单次触发，无周期定时器；对一个已经启动的定时器调用该函数，则该定时器会重新开始计时。
- * @param event：用于定时的事件；tick：定时的滴答数。
+ * @brief 初始化一个定时器，并将其与一个事件关联。
+ * @note 定时器必须初始化后才能启动；定时器超时会触发与其关联的事件，该事件仍需先与任务绑定。
+ * @param timer：定时器结构体指针；event：定时器超时后要触发的事件；type：定时类型，单次或周期。
  * @retval
  */
-void OSTimerStart(OS_EVENT_T * event, OS_TICK_T tick);
+void OSTimerInit(OS_TIMER_T * timer, OS_EVENT_T * event, OS_TIMEOUT_TYPE_T type);
+
+/**
+ * @brief 启动一个定时器。
+ * @note 定时器可以配置为单次触发或周期触发；对一个已经启动的定时器调用该函数，则该定时器会重新开始计时。
+ * @param timer：要启动的定时器；tick：定时的滴答数。
+ * @retval
+ */
+void OSTimerStart(OS_TIMER_T * timer, OS_TICK_T tick);
 
 /**
  * @brief 停止一个定时器。
  * @note 对一个没有运行的定时器调用该函数，不会产生影响。
- * @param event：用于定时的事件。
+ * @param timer：要停止的定时器。
  * @retval
  */
-void OSTimerStop(OS_EVENT_T * event);
+void OSTimerStop(OS_TIMER_T * timer);
 
 /**
  * @brief 断言任务是否被某一事件激活。

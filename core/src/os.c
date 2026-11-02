@@ -20,9 +20,11 @@
 #include "os.h"
 
 static OS_TCB_T * gOSTcbBase = NULL;
-static OS_EVENT_T gOSTimeoutList = { 0 };
+static OS_TIMER_T gOSTimeoutList = { 0 };
 static OS_EVENT_MASK_T gOSReadyEventGroup;
 
+static void OSTimerInsert(OS_TIMER_T * timer, OS_TICK_T tick);
+static void OSTimerRemove(OS_TIMER_T * timer);
 static void OSTickHandle(OS_TICK_T tick);
 
 void OSStart(OS_TCB_T * tcb, int number)
@@ -81,8 +83,6 @@ bool OSEventBind(OS_TCB_T * tcb, OS_EVENT_T * event)
 
     event->Id = tcb->Id;
     event->Mask = 1u << tcb->Counter;
-    event->IsRun = false;
-    event->Next = NULL;
     tcb->Counter = tcb->Counter + 1;
 
     return true;
@@ -106,10 +106,8 @@ bool OSEventAssert(const OS_EVENT_T * event)
 
 OS_TICK_T OSGetNeededTick(void)
 {
-    OS_EVENT_T * pEvent = &gOSTimeoutList;
-
-    if (pEvent->Next != NULL) {
-        return pEvent->Next->Timeout;
+    if (gOSTimeoutList.Next != NULL) {
+        return gOSTimeoutList.Next->Timeout;
     } else {
         return 0;
     }
@@ -120,66 +118,46 @@ OS_TICK_T OSGetMaxTick(const OS_TCB_T * tcb)
     return tcb->MaxTick;
 }
 
-void OSTimerStart(OS_EVENT_T * event, OS_TICK_T tick)
+void OSTimerInit(OS_TIMER_T * timer, OS_EVENT_T * event, OS_TIMEOUT_TYPE_T type)
 {
-    OS_TICK_T base = 0;
-    OS_EVENT_T * pEvent = &gOSTimeoutList;
-
-    // 定时器已经在运行，则先将其从运行链表中取出。
-    if (event->IsRun == true) {
-        while (pEvent->Next != NULL && pEvent->Next != event) {
-            pEvent = pEvent->Next;
-        }
-        pEvent->Next = pEvent->Next->Next;
-        if (pEvent->Next != NULL) {
-            pEvent->Next->Timeout = pEvent->Next->Timeout + event->Timeout;
-        }
-        event->Next = NULL;
-        event->IsRun = false;
-        pEvent = &gOSTimeoutList;
-    }
-
-    // 在运行链表中接到适合定时器的位置。
-    while (pEvent->Next != NULL) {
-        base = base + pEvent->Next->Timeout;
-        if (base >= tick) {
-            break;
-        } else {
-            pEvent = pEvent->Next;
-        }
-    }
-
-    if (pEvent->Next == NULL) {
-        event->Timeout = tick - base;
-        event->Next = NULL;
-        pEvent->Next = event;
-    } else {
-        event->Timeout = tick - (base - pEvent->Next->Timeout);
-        pEvent->Next->Timeout = base - tick;
-        event->Next = pEvent->Next;
-        pEvent->Next = event;
-    }
-
-    event->IsRun = true;
-}
-
-void OSTimerStop(OS_EVENT_T * event)
-{
-    OS_EVENT_T * pEvent = &gOSTimeoutList;
-
-    if (event->IsRun == false) {
+    if (event == NULL || timer == NULL) {
         return;
     }
 
-    while (pEvent->Next != NULL && pEvent->Next != event) {
-        pEvent = pEvent->Next;
+    if (timer->IsRun == true) {
+        OSTimerRemove(timer);
     }
-    pEvent->Next = pEvent->Next->Next;
-    if (pEvent->Next != NULL) {
-        pEvent->Next->Timeout = pEvent->Next->Timeout + event->Timeout;
+
+    timer->Next = NULL;
+    timer->Event = event;
+    timer->Timeout = 0;
+    timer->Interval = 0;
+    timer->Type = type;
+    timer->IsRun = false;
+}
+
+void OSTimerStart(OS_TIMER_T * timer, OS_TICK_T tick)
+{
+    if (timer == NULL || timer->Event == NULL) {
+        return;
     }
-    event->Next = NULL;
-    event->IsRun = false;
+
+    // 定时器已经在运行，则先将其从运行链表中取出。
+    if (timer->IsRun == true) {
+        OSTimerRemove(timer);
+    }
+
+    timer->Interval = tick;
+    OSTimerInsert(timer, tick);
+}
+
+void OSTimerStop(OS_TIMER_T * timer)
+{
+    if (timer == NULL || timer->IsRun == false) {
+        return;
+    }
+
+    OSTimerRemove(timer);
 }
 
 __WEAK void OSIdelTask(void) {}
@@ -194,24 +172,90 @@ __WEAK OS_TICK_T OSGetTick(void) { return 0; }
  */
 static void OSTickHandle(OS_TICK_T tick)
 {
-    OS_EVENT_T * pTemp;
-    OS_EVENT_T * pEvent = &gOSTimeoutList;
+    OS_TIMER_T * pExpired;
+    OS_TIMER_T * pTimer = &gOSTimeoutList;
 
-    if (pEvent->Next == NULL || tick == 0) {
+    if (pTimer->Next == NULL || tick == 0) {
         return;
     }
 
-    while (pEvent->Next != NULL) {
-        if (pEvent->Next->Timeout <= tick) {
-            atomic_fetch_or_explicit(&gOSTcbBase[pEvent->Next->Id].Flag, pEvent->Next->Mask, memory_order_relaxed);
-            tick = tick - pEvent->Next->Timeout;
-            pTemp = pEvent->Next;
-            pEvent->Next = pEvent->Next->Next;
-            pTemp->Next = NULL;
-            pTemp->IsRun = false;
-        } else {
-            pEvent->Next->Timeout = pEvent->Next->Timeout - tick;
+    while (pTimer->Next != NULL) {
+        if (pTimer->Next->Timeout > tick) {
+            pTimer->Next->Timeout = pTimer->Next->Timeout - tick;
             break;
         }
+
+        tick = tick - pTimer->Next->Timeout;
+        pExpired = pTimer->Next;
+        pTimer->Next = pExpired->Next;
+        pExpired->Next = NULL;
+        pExpired->IsRun = false;
+        OSEventPost(pExpired->Event);
+
+        // 周期定时器重新装载，若剩余tick足够，会在本轮内再次超时。
+        if (pExpired->Type == OS_TIMEOUT_TYPE_PERIODIC && pExpired->Interval > 0) {
+            OSTimerInsert(pExpired, pExpired->Interval);
+        }
     }
+}
+
+/**
+ * @brief 将定时器按超时先后插入运行链表。
+ * @note tick为相对于当前时刻的定时时长，插入后定时器的Timeout为相对于前一个定时器的剩余tick数。
+ * @param timer：要插入的定时器；tick：相对于当前时刻的定时时长。
+ * @retval
+ */
+static void OSTimerInsert(OS_TIMER_T * timer, OS_TICK_T tick)
+{
+    OS_TICK_T base = 0;
+    OS_TIMER_T * pTimer = &gOSTimeoutList;
+
+    while (pTimer->Next != NULL) {
+        base = base + pTimer->Next->Timeout;
+        if (base >= tick) {
+            break;
+        } else {
+            pTimer = pTimer->Next;
+        }
+    }
+
+    if (pTimer->Next == NULL) {
+        timer->Timeout = tick - base;
+        timer->Next = NULL;
+        pTimer->Next = timer;
+    } else {
+        timer->Timeout = tick - (base - pTimer->Next->Timeout);
+        pTimer->Next->Timeout = base - tick;
+        timer->Next = pTimer->Next;
+        pTimer->Next = timer;
+    }
+
+    timer->IsRun = true;
+}
+
+/**
+ * @brief 将一个正在运行的定时器从运行链表中取出。
+ * @note
+ * @param timer：要取出的定时器。
+ * @retval
+ */
+static void OSTimerRemove(OS_TIMER_T * timer)
+{
+    OS_TIMER_T * pTimer = &gOSTimeoutList;
+
+    while (pTimer->Next != NULL && pTimer->Next != timer) {
+        pTimer = pTimer->Next;
+    }
+
+    if (pTimer->Next == NULL) {
+        timer->IsRun = false;
+        return;
+    }
+
+    pTimer->Next = timer->Next;
+    if (timer->Next != NULL) {
+        timer->Next->Timeout = timer->Next->Timeout + timer->Timeout;
+    }
+    timer->Next = NULL;
+    timer->IsRun = false;
 }

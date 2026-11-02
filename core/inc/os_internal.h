@@ -67,9 +67,27 @@ typedef struct os_tcb_t {
 typedef struct os_event_t {
     int Id;                         // 事件对应任务的ID。
     OS_EVENT_MASK_T Mask;           // 事件掩码。
-    bool IsRun;                     // 事件超时是否正在运行。
-    OS_TICK_T Timeout;              // 事件超时。
-    struct os_event_t * Next;       // 事件链表指针。
 } OS_EVENT_T;
+
+/**
+ * @brief 定时器类型。
+ */
+typedef enum os_timeout_type_t {
+    OS_TIMEOUT_TYPE_SINGLE = 0,     // 单次定时器，超时触发一次后停止。
+    OS_TIMEOUT_TYPE_PERIODIC,       // 周期定时器，每次超时后按定时时长重新装载。
+} OS_TIMEOUT_TYPE_T;
+
+/**
+ * @brief 定时器。
+ * @note 定时器在初始化时与一个事件关联，超时时触发该事件。
+ */
+typedef struct os_timer_t {
+    struct os_timer_t * Next;       // 定时器链表指针。
+    OS_EVENT_T * Event;             // 定时器超时后触发的事件。
+    OS_TICK_T Timeout;              // 相对于前一个定时器的剩余tick数。
+    OS_TICK_T Interval;             // 定时时长，周期定时器超时后按该值重新装载。
+    OS_TIMEOUT_TYPE_T Type;         // 定时器类型。
+    bool IsRun;                     // 定时器是否正在运行。
+} OS_TIMER_T;
 
 #endif // _OS_INTERNAL_H_

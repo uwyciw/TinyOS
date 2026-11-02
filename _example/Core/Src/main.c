@@ -65,6 +65,8 @@ static __OS_EVENT_ALLOC(EventStartA);
 static __OS_EVENT_ALLOC(EventStopA);
 static __OS_EVENT_ALLOC(EventStartB);
 static __OS_EVENT_ALLOC(EventStopB);
+static OS_TIMER_T Timer100ms;
+static OS_TIMER_T Timer500ms;
 static OS_TCB_T tcb[] = {
     __OS_TASK_INSERT(TaskButtonInit, TaskButton),
     __OS_TASK_INSERT(TaskAInit, TaskA),
@@ -342,20 +344,21 @@ static void TaskAInit(OS_TCB_T * tcb)
     OSEventBind(tcb, &Event100ms);
     OSEventBind(tcb, &EventStartA);
     OSEventBind(tcb, &EventStopA);
+
+    OSTimerInit(&Timer100ms, &Event100ms, OS_TIMEOUT_TYPE_PERIODIC);
 }
 static void TaskA(OS_TCB_T * tcb)
 {
     if (OSEventAssert(&EventStartA)) {
-        OSTimerStart(&Event100ms, 100);
+        OSTimerStart(&Timer100ms, 100);
     }
 
     if (OSEventAssert(&EventStopA)) {
-        OSTimerStop(&Event100ms);
+        OSTimerStop(&Timer100ms);
     }
 
     if (OSEventAssert(&Event100ms)) {
         BSP_LED_Toggle(LED_GREEN);
-        OSTimerStart(&Event100ms, 100);
     }
 }
 
@@ -364,21 +367,22 @@ static void TaskBInit(OS_TCB_T * tcb)
     OSEventBind(tcb, &Event500ms);
     OSEventBind(tcb, &EventStartB);
     OSEventBind(tcb, &EventStopB);
+
+    OSTimerInit(&Timer500ms, &Event500ms, OS_TIMEOUT_TYPE_PERIODIC);
 }
 
 static void TaskB(OS_TCB_T * tcb)
 {
     if (OSEventAssert(&EventStartB)) {
-        OSTimerStart(&Event500ms, 500);
+        OSTimerStart(&Timer500ms, 500);
     }
 
     if (OSEventAssert(&EventStopB)) {
-        OSTimerStop(&Event500ms);
+        OSTimerStop(&Timer500ms);
     }
 
     if (OSEventAssert(&Event500ms)) {
-        BSP_LED_Toggle(LED_GREEN);
-        OSTimerStart(&Event500ms, 500);
+        BSP_LED_Toggle(LED_YELLOW);
     }
 }
 

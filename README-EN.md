@@ -9,7 +9,7 @@ TinyOS is a lightweight kernel that features non-preemptive scheduling, weak pri
 - TinyOS is designed with the core tenet of ultimate compactness, and its resource consumption is extremely close to that of bare-metal programming.
 - The kernel does not support task preemption, nor does it allocate separate stack spaces for individual tasks. Each task execution is equivalent to a normal call to the task function, and all task functions are executed sequentially on the main stack.
 - Tasks must be declared in the task array before kernel initialization. Their priorities are implicitly defined by their order in the array—the first element in the array has the highest priority. Although this approach sacrifices the flexibility of dynamic task creation, it saves considerable system resources.
-- Only one simple event type is provided, which can be used either as a signal-like event or a timer-like event.
+- Only one simple event type is provided, and it is used only to activate tasks. Timers are separate objects; a timer is associated with an event at initialization and triggers that event on timeout.
 - The timing unit only supports tick counts instead of standard time units. Moreover, it is not mandatory to invoke the timing function on every clock tick, making this design highly suitable for low-power consumption scenarios.
 
 ## Event
@@ -17,18 +17,15 @@ TinyOS is a lightweight kernel that features non-preemptive scheduling, weak pri
 - Before an EVENT is used, it must be bound to a task and cannot be unbound after binding. The number of events that each task can bind is specified by OS_EVENT_MAX_NUM, which can be 8, 16, 32, or 64.
 - When an event is triggered, the task bound to it enters an active state, and the kernel will schedule the task at an appropriate time.
 - Once a task is executed, all events bound to it will revert to the non-triggered state.
-- Although the kernel provides only one event type, it can be used either as a signal-like event or a timer-like event.
-  - When an event is used as a non-counting signal type event, it can be activated through the 'OSEventPost' function.
-  - When used as a timer-like event, the event can be added to the timer queue via the `OSTimerStart` function, waiting to be triggered upon timeout.
+- Although the kernel provides only one event type, it is used as a signal-like event:
+  - An event can be activated directly through the `OSEventPost` function.
+  - An event can also be associated with a timer and triggered by that timer on timeout; see [Timer](#timer).
 - The kernel provides a dedicated macro `__OS_EVENT_ALLOC` for declaring events.
 - The type definition of an event is as follows:
 ```
 typedef struct os_event_t {
     int Id;                         // ID of the task this event belongs to.
     OS_EVENT_MASK_T Mask;           // Event mask.
-    bool IsRun;                     // Whether the event timer is running.
-    OS_TICK_T Timeout;              // Event timeout.
-    struct os_event_t * Next;       // Linked list pointer.
 } OS_EVENT_T;
 ```
 
@@ -60,8 +57,24 @@ typedef struct os_tcb_t {
 
 ## Timer
 
-- When an event is used as a timer-like event, it functions as a timer.
-- All timers are one-shot—there are no periodic timers in the kernel. Tasks can be restarted after a timer expires to achieve periodic timing.
+- Timers are separate from events. A timer is associated with an event during initialization and triggers that event on timeout, which in turn activates the task the event is bound to.
+- A timer must be initialized before it can be started, and its type is specified at initialization:
+  - `OS_TIMEOUT_TYPE_SINGLE`: A one-shot timer that stops after triggering once.
+  - `OS_TIMEOUT_TYPE_PERIODIC`: A periodic timer that reloads the configured timeout after each expiry, which can be used to implement periodic tasks.
+- `OSTimerInit` initializes a timer and associates it with an event, `OSTimerStart` starts or restarts a timer, and `OSTimerStop` stops a timer.
+- A timer triggers its event as a flag: if the timer expires several times before the task runs, only one pending trigger is kept. Use a separate counter where exact counts matter.
+- `OSGetNeededTick` reports how many ticks remain until the next timer expires, which is useful in low-power scenarios.
+- The type definition of a timer is as follows:
+```
+typedef struct os_timer_t {
+    struct os_timer_t * Next;       // Linked list pointer.
+    OS_EVENT_T * Event;             // Event triggered when the timer expires.
+    OS_TICK_T Timeout;              // Remaining ticks relative to the previous timer.
+    OS_TICK_T Interval;             // Timeout length; a periodic timer reloads this value after expiry.
+    OS_TIMEOUT_TYPE_T Type;         // Timer type.
+    bool IsRun;                     // Whether the timer is running.
+} OS_TIMER_T;
+```
 
 ## Sub-directories Overview
 
